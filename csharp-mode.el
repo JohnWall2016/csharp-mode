@@ -1146,8 +1146,7 @@ to work properly with code that includes attributes."
            ;;,`(,"\\.\\([A-Za-z0-9_]+\\)("
            ;;   1 font-lock-function-name-face t)
            ,`((lambda (limit)
-                (custom-highlight limit ,"\\.\\([A-Za-z0-9_]+\\)(" 1 'font-lock-function-name-face)))
-
+                (custom-highlight limit ,"\\.?\\([A-Za-z0-9_]+\\)\\(<.*\\)?(" 1 'font-lock-function-name-face)))
            ))
 
 ;; verbatim string literals can be multiline
@@ -1514,8 +1513,16 @@ This regexp is assumed to not match any non-operator identifier."
    `(func-start
      ,(concat
        "^[ \t\n\r\f\v]*"                            ;; leading whitespace
-       "\\("
-       "public\\(?: static\\)?\\|"                  ;; 1. access modifier
+       "\\(?:\\["                                   ;; attributes
+       "[ \t\n\r\f\v]*"
+       "\\(?:\\(?:return\\|assembly\\)[ \t]*:[ \t]*\\)?"
+       "\\(?:"
+       "\\(?:[A-Za-z_][[:alnum:]]*\\.\\)*"
+       "[A-Za-z_][[:alnum:]]*"
+       "\\)"
+       "[^]]*\\][ \t\n\r\f\v]*\\)*"
+       "\\("                                        ;; 1. access modifier
+       "public\\(?: static\\)?\\|"
        "private\\(?: static\\)?\\|"
        "protected\\(?: internal\\)?\\(?: static\\)?\\|"
        "static\\|"
@@ -1584,7 +1591,7 @@ This regexp is assumed to not match any non-operator identifier."
 (defun csharp-move-back-to-beginning-of-block ()
   "Move to the previous open curly."
   (interactive)
-  (re-search-backward "{" (point-min) t))
+  (re-search-backward "\\(?:{\\|=>\\)" (point-min) t))
 
 
 (defun csharp--move-back-to-beginning-of-something (must-match &optional must-not-match)
@@ -1599,7 +1606,7 @@ This is a helper fn for `csharp-move-back-to-beginning-of-defun' and
   (interactive)
   (let (done
         (found (point))
-        (need-to-backup (not (looking-at "{"))))
+        (need-to-backup (not (looking-at "\\(?:{\\|=>\\)"))))
     (while (not done)
       (if need-to-backup
           (setq found (csharp-move-back-to-beginning-of-block)))
@@ -1630,7 +1637,7 @@ See also, `csharp-move-fwd-to-end-of-defun'."
         ;; handle the case where we're at the top of a fn now.
         ;; if the user is asking to move back, then obviously
         ;; he wants to move back to a *prior* defun.
-        (if (and (looking-at "{")
+        (if (and (looking-at "\\(?:{\\|=>\\)")
                  (looking-back (csharp--regexp 'func-start) nil)
                  (not (looking-back (csharp--regexp 'namespace-start) nil)))
             (forward-char -1))
@@ -1645,7 +1652,7 @@ See also, `csharp-move-fwd-to-end-of-defun'."
 
 (defun csharp--on-defun-open-curly-p ()
   "Return t when point is on the open-curly of a method."
-  (and (looking-at "{")
+  (and (looking-at "\\(?:{\\|=>\\)")
        (not (looking-back (csharp--regexp 'class-start) nil))
        (not (looking-back (csharp--regexp 'namespace-start) nil))
        (looking-back (csharp--regexp 'func-start) nil)))
