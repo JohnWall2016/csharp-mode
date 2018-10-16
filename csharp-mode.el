@@ -2929,22 +2929,22 @@ Otherwise run `c-inside-bracelist-p'."
                (c-comment-only-line-offset . (0 . 0))
                (c-offsets-alist . (
                                    (access-label          . -)
-                                   (arglist-close         . c-lineup-arglist)
+                                   (arglist-close         . cs-arglist-close)
                                    (arglist-cont          . 0)
                                    (arglist-cont-nonempty . c-lineup-arglist)
-                                   (arglist-intro         . c-lineup-arglist-intro-after-paren)
+                                   (arglist-intro         . +)
                                    (block-close           . 0)
                                    (block-open            . 0)
                                    (brace-entry-open      . 0)
                                    (brace-list-close      . 0)
                                    (brace-list-entry      . 0)
                                    (brace-list-intro      . +)
-                                   (brace-list-open       . +)
+                                   (brace-list-open       . cs-brace-list-open)
                                    (c                     . c-lineup-C-comments)
                                    (case-label            . +)
                                    (catch-clause          . 0)
                                    (class-close           . 0)
-                                   (class-open            . 0)
+                                   (class-open            . cs-class-open)
                                    (comment-intro         . c-lineup-comment)
                                    (cpp-macro             . 0)
                                    (cpp-macro-cont        . c-lineup-dont-change)
@@ -2979,14 +2979,14 @@ Otherwise run `c-inside-bracelist-p'."
                                    (statement-block-intro . +)
                                    (statement-case-intro  . +)
                                    (statement-case-open   . +)
-                                   (statement-cont        . +)
+                                   (statement-cont        . cs-statement-cont)
                                    (stream-op             . c-lineup-streamop)
                                    (string                . c-lineup-dont-change)
                                    (substatement          . +)
                                    (substatement-open     . 0)
                                    (template-args-cont c-lineup-template-args +)
                                    (topmost-intro         . 0)
-                                   (topmost-intro-cont    . +)
+                                   (topmost-intro-cont    . 0)
                                    ))
                ))
 
@@ -3116,6 +3116,106 @@ Key bindings:
   ;; manually, font-lock enabled or not.
   (with-silent-modifications
     (csharp-mode-syntax-propertize-function (point-min) (point-max))))
+
+
+(defun inside-enum-p (pos)
+  (ignore-errors
+    (save-excursion
+      (goto-char pos)
+      (looking-at
+       (concat
+        "\\("
+        "\\(?:"
+        "public\\(?: static\\)?\\|"                  ;; 1. access modifier
+        "private\\(?: static\\)?\\|"
+        "protected\\(?: internal\\)?\\(?: static\\)?\\|"
+        "static\\|"
+        "\\)"
+        "[ \t]+"
+        "\\)?"
+        "enum[ \t]+")))))
+
+(defun cs-brace-list-open (langelem)
+  (if (or (inside-enum-p (c-langelem-pos langelem))
+          (inside-statement-new-brace-p (c-langelem-pos langelem)))
+      0
+    '-)) ;;'+
+
+;; [[ID.]*ID ]?ID =[>] new [ID.]*ID[<.*>]?.*
+;; {}
+(defun inside-statement-new-brace-p (pos)
+  (ignore-errors
+    (save-excursion
+      (goto-char pos)
+      (looking-at
+       (concat
+        "\\([[:alpha:]_][[:alnum:]_<,>\\.]*[ \t]+\\)*?"
+        "\\([[:alpha:]_][[:alnum:]_]*\\)"
+        "[ \t]*=>?[ \t]*"
+        "new[ \t]+\\([[:alpha:]_][[:alnum:]_<,>\\.]*\\)")))))
+
+;; =
+(defun end-with-equal-p (pos)
+  (ignore-errors
+    (save-excursion
+      (goto-char pos)
+      (looking-at
+       (concat
+        "\\([][[:alnum:]_<>()\\.:+=, \t]*\\)?"
+        "=[ \t]*$")))))
+
+;; =>
+(defun end-with-fat-arrow-p (pos)
+  (ignore-errors
+    (save-excursion
+      (goto-char pos)
+      (looking-at
+       (concat
+        "\\([][[:alnum:]_<>()\\.:+=, \t]*\\)?"
+        "=>[ \t]*$")))))
+
+(defun cs-statement-cont (langelem)
+  (let ((pos (c-langelem-pos langelem)))
+    (if (inside-statement-new-brace-p pos)
+        0
+      (if (end-with-equal-p pos)
+          0
+        '+))))
+
+;; : [ID,]*new()
+(defun inside-interface-new-brace-p(pos)
+  (ignore-errors
+    (save-excursion
+      (goto-char pos)
+      (looking-at
+       (concat
+        "\\("
+        "\\(?:"
+        "public\\(?: static\\)?\\|"                  ;; 1. access modifier
+        "private\\(?: static\\)?\\|"
+        "protected\\(?: internal\\)?\\(?: static\\)?\\|"
+        "static\\|"
+        "\\)"
+        "[ \t]+"
+        "\\)?"
+        "class[ \t]+\\([[:alpha:]_][[:alnum:]_<>\\.]*\\)"
+        "[ \t]*"
+        "\\([[:alnum:]_<>\\.:, \t]*\\)?"
+        "new()[ \t]*$"
+        )))))
+
+;; fixing where T : new()
+;;    {}
+(defun cs-class-open (langelem)
+  (if (inside-interface-new-brace-p (c-langelem-pos langelem))
+      '-
+    0))
+
+(defun cs-arglist-close (langelem)
+  (if (end-with-fat-arrow-p (c-langelem-pos langelem))
+      0
+    (c-lineup-arglist langelem)))
+
 
 (provide 'csharp-mode)
 
