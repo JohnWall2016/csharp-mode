@@ -797,7 +797,8 @@ to work properly with code that includes attributes."
              (goto-char (match-beginning 1))
              (c-skip-comments-and-strings limit))
          (c-put-font-lock-face  (match-beginning subexp) (match-end subexp) face)
-         (goto-char (match-end 0)))))
+         (goto-char (match-end 0))))
+  nil)
 
 (c-lang-defconst c-basic-matchers-after
   csharp `(
@@ -1146,7 +1147,7 @@ to work properly with code that includes attributes."
            ;;,`(,"\\.\\([A-Za-z0-9_]+\\)("
            ;;   1 font-lock-function-name-face t)
            ,`((lambda (limit)
-                (custom-highlight limit ,"\\.?\\([A-Za-z0-9_]+\\)\\(<.*\\)?(" 1 'font-lock-function-name-face)))
+                (custom-highlight limit ,"\\.?\\([A-Za-z0-9_]+\\)\\(<.+\\)?(" 1 'font-lock-function-name-face)))
            ))
 
 ;; verbatim string literals can be multiline
