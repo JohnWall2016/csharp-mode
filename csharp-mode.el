@@ -790,16 +790,6 @@ to work properly with code that includes attributes."
               1 font-lock-keyword-face)
            ))
 
-(defun custom-highlight (limit regexp subexp face)
-  (while (re-search-forward regexp limit t)
-       (unless
-           (progn
-             (goto-char (match-beginning 1))
-             (c-skip-comments-and-strings limit))
-         (c-put-font-lock-face  (match-beginning subexp) (match-end subexp) face)
-         (goto-char (match-end 0))))
-  nil)
-
 (c-lang-defconst c-basic-matchers-after
   csharp `(
 
@@ -1135,19 +1125,13 @@ to work properly with code that includes attributes."
            ;; this needs to be done in the matchers-after because
            ;; otherwise the namespace names get the font-lock-type-face,
            ;; due to the energetic efforts of c-forward-type.
-           ;;,`("\\<\\(namespace\\)[ \t\n\r\f\v]+\\(\\(?:[A-Za-z0-9_]+\\.\\)*[A-Za-z0-9_]+\\)"
-           ;;   2 font-lock-constant-face t)
-           ,`((lambda (limit)
-                (custom-highlight limit ,"\\<\\(namespace\\)[ \t\n\r\f\v]+\\(\\(?:[A-Za-z0-9_]+\\.\\)*[A-Za-z0-9_]+\\)"
-                                  2 'font-lock-constant-face)))
-
+           ,`("\\<\\(namespace\\)[ \t\n\r\f\v]+\\(\\(?:[A-Za-z0-9_]+\\.\\)*[A-Za-z0-9_]+\\)"
+              2 font-lock-constant-face t)
 
            ;; Highlight function-invocation.
            ;; (this may in the future use font-lock-function-call-face, if standardized)
            ;;,`(,"\\.\\([A-Za-z0-9_]+\\)("
            ;;   1 font-lock-function-name-face t)
-           ,`((lambda (limit)
-                (custom-highlight limit ,"\\.?\\([A-Za-z0-9_]+\\)\\(<.+\\)?(" 1 'font-lock-function-name-face)))
            ))
 
 ;; verbatim string literals can be multiline
